@@ -1,3 +1,8 @@
 ### Команды в терминал:
-## winget install ffmpeg
-## pip install -r requirements.txt
+## Установка FFmpeg (обязательно)
+# winget install ffmpeg
+## Установка Python-зависимостей
+# pip install -r requirements.txt
+### Запуск проекта
+## Запустите основной файл приложения "app.py"
+## После загрузки Vosk в терминале появится ссылка на веб-интерфейс
