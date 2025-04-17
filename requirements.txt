@@ -1,0 +1,7 @@
+celery==5.5.1
+Flask==3.1.0
+pydub==0.25.1
+reportlab==4.3.1
+textblob==0.19.0
+vosk==0.3.45
+audioop-lts

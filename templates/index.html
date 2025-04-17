@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Запись и анализ аудио</title>
+    <style>
+        .recording-btn {
+            padding: 10px 20px;
+            margin: 10px;
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .recording-btn.recording {
+            background-color: #44ff44;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        #audioPlayer {
+            margin: 20px 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Анализ эмоций в речи</h1>
+    
+    <div>
+        <button id="recordBtn" class="recording-btn">Начать запись</button>
+        <audio id="audioPlayer" controls style="display: none;"></audio>
+    </div>
+    
+    <div id="uploadSection">
+        <p>Или загрузите существующий файл:</p>
+        <input type="file" id="fileUpload" accept=".wav,.mp3">
+    </div>
+    
+    <div id="results" style="margin-top: 20px; display: none;">
+        <h2>Результаты анализа:</h2>
+        <div id="coloredText"></div>
+    </div>
+
+    <script>
+        const recordBtn = document.getElementById('recordBtn');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const fileUpload = document.getElementById('fileUpload');
+        let mediaRecorder;
+        let audioChunks = [];
+        
+        // Запись с микрофона
+        recordBtn.addEventListener('click', async () => {
+            if (recordBtn.classList.contains('recording')) {
+                stopRecording();
+                return;
+            }
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    audioPlayer.src = URL.createObjectURL(audioBlob);
+                    audioPlayer.style.display = 'block';
+                    sendAudioForAnalysis(audioBlob);
+                };
+                
+                audioChunks = [];
+                mediaRecorder.start();
+                recordBtn.classList.add('recording');
+                recordBtn.textContent = 'Остановить запись';
+                
+            } catch (err) {
+                console.error('Ошибка доступа к микрофону:', err);
+                alert('Не удалось получить доступ к микрофону');
+            }
+        });
+        
+        
+        function stopRecording() {
+            mediaRecorder.stop();
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            recordBtn.classList.remove('recording');
+            recordBtn.textContent = 'Начать запись';
+        }
+        
+        // Загрузка файла
+        fileUpload.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                sendAudioForAnalysis(e.target.files[0]);
+            }
+        });
+        
+        // Отправка на сервер
+        async function sendAudioForAnalysis(audioBlob) {
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'recording.wav');
+            
+            try {
+                const response = await fetch('/process_audio', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) throw new Error('Ошибка анализа');
+                
+                const data = await response.json();
+                showResults(data);
+                
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при анализе аудио');
+            }
+        }
+        
+        // Показ результатов
+        function showResults(data) {
+            document.getElementById('coloredText').innerHTML = data.colored_text;
+            document.getElementById('results').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
