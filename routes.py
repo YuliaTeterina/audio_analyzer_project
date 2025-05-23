@@ -16,7 +16,7 @@ MODEL_NAME = "vosk-model-small-ru-0.22"
 if not os.path.exists(MODEL_NAME):
     raise FileNotFoundError("Модель Vosk не найдена")
 else:
-    model = Model(MODEL_NAME)
+    model_vosk = Model(MODEL_NAME)
     print('Модель Vosk успешно инициализирована!')
 
 emotions = ['negative', 'neutral', 'positive']
@@ -82,3 +82,32 @@ def analyze_sentiment():
         })
 
     return jsonify(results)
+
+@app.route('/process_audio', methods=['POST'])
+def process_audio():
+    if 'audio' not in request.files:
+        return jsonify({"error": "No audio file"}), 400
+    
+    #time.sleep(1)
+    
+    audio_file = request.files['audio']
+
+    #audio_file = 'record_out.wav'
+    
+    try:
+        # Конвертируем в правильный WAV
+
+        audio = AudioSegment.from_file(audio_file)
+        audio = audio.set_frame_rate(32000).set_channels(1).set_sample_width(2)
+        
+        filename = os.path.join(app.config['UPLOAD_FOLDER'], "temp.wav")
+        audio.export(filename, format="wav")
+        #time.sleep(1)
+        
+        text = transcribe_audio(model_vosk, filename)
+        
+        return jsonify({
+            "text": text,
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

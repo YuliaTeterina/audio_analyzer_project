@@ -556,7 +556,7 @@
 
             recognition.onerror = (event) => {
                 console.error('Ошибка распознавания:', event.error);
-                showAlert(`Ошибка распознавания: ${event.error}`, 'error');
+                //showAlert(`Ошибка распознавания: ${event.error}`, 'error');
             };
         }
 
@@ -767,7 +767,7 @@
                     audioPlayer.classList.remove('hidden');
 
                     // Отправляем аудио на сервер Flask
-                    await sendAudioToServer(audioBlob);
+                    // await sendAudioToServer(audioBlob);
                 };
 
                 audioChunks = [];
@@ -840,7 +840,7 @@
                     const formData = new FormData();
                     formData.append('audio', file);
 
-                    const response = await fetch('http://localhost:5000/recognize', {
+                    const response = await fetch('http://localhost:5000/process_audio', {
                         method: 'POST',
                         body: formData
                     });
@@ -853,8 +853,14 @@
 
                     if (data.text) {
                         finalTranscript = data.text;
-                        finalText.innerHTML = colorizeText(finalTranscript);
-                        analyzeEmotions(finalTranscript);
+                        // finalText.innerHTML = colorizeText(finalTranscript);
+                        analyzeEmotions(finalTranscript).then(coloredText => {
+                            finalText.innerHTML = coloredText;
+                        }).catch(error => {
+                            console.error("Ошибка:", error);
+                            finalText.innerHTML = finalTranscript; // Выводим исходный текст при ошибке
+                        });
+                        // analyzeEmotions(finalTranscript);
                     }
 
                 } catch (error) {
