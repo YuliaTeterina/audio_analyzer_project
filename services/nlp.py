@@ -1,30 +1,16 @@
-from textblob import TextBlob
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import torch
+import numpy as np
 
-emotion_colors = {
-    "радость": "#FFD700",
-    "грусть": "#4682B4",
-    "гнев": "#FF4500",
-    "страх": "#800080",
-    "нейтрально": "#C0C0C0"
-}
+emotions = ['негативный', 'нейтральный', 'позитивный']
 
-def analyze_emotion(word):
-    blob = TextBlob(word)
-    sentiment = blob.sentiment.polarity
-    print(word, sentiment)
-    
-    if sentiment > 0.3:
-        return "радость"
-    elif sentiment < -0.3:
-        return "гнев"
-    else:
-        return "нейтрально"
+model_name = "cointegrated/rubert-tiny-sentiment-balanced"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSequenceClassification.from_pretrained(model_name)
 
-def colorize_text(text):
-    words = text.split()
-    colored_text = []
-    for word in words:
-        emotion = analyze_emotion(word)
-        color = emotion_colors.get(emotion, "#C0C0C0")
-        colored_text.append(f'<span style="color:{color}">{word}</span>')
-    return " ".join(colored_text)
+def get_word_sentiment(word):
+    inputs = tokenizer(word, return_tensors="pt", truncation=True, padding=True)
+    with torch.no_grad():
+        outputs = model(**inputs)
+    proba = torch.softmax(outputs.logits, dim=1).numpy()[0]
+    return emotions[np.argmax(proba)]

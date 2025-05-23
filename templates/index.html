@@ -1,132 +1,917 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Запись и анализ аудио</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализатор эмоций в речи</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .recording-btn {
-            padding: 10px 20px;
-            margin: 10px;
-            background-color: #ff4444;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
+        :root {
+            /* Цветовые палитры */
+            --happy-colors: #4cc9f0, #4895ef, #4361ee;
+            --sad-colors: #7209b7, #5a189a, #3a0ca3;
+            --angry-colors: #f72585, #b5179e, #7209b7;
+            --neutral-colors: #adb5bd, #6c757d, #495057;
+            /* Тема */
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --accent: #f72585;
+            --text: #2b2d42;
+            --bg: #f8f9fa;
+            --card: #ffffff;
+            --shadow: rgba(0, 0, 0, 0.1);
         }
-        .recording-btn.recording {
-            background-color: #44ff44;
+
+        [data-theme="dark"] {
+            --primary: #4895ef;
+            --secondary: #4361ee;
+            --accent: #f72585;
+            --text: #f8f9fa;
+            --bg: #121212;
+            --card: #1e1e1e;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            margin: 0;
+            transition: all 0.3s ease;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text);
+            font-size: 1.5rem;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px var(--shadow);
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+            .btn-primary:hover {
+                background: var(--secondary);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 16px rgba(67, 97, 238, 0.3);
+            }
+
+        .btn-danger {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-recording {
             animation: pulse 1.5s infinite;
         }
+
         @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
+            0% {
+                box-shadow: 0 0 0 0 rgba(247, 37, 133, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 12px rgba(247, 37, 133, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(247, 37, 133, 0);
+            }
         }
+
+        .file-upload {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .file-upload-label {
+            display: inline-block;
+            padding: 0.8rem 1.5rem;
+            background: var(--card);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px dashed var(--primary);
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+            .file-upload-label:hover {
+                background: rgba(67, 97, 238, 0.1);
+            }
+
         #audioPlayer {
-            margin: 20px 0;
             width: 100%;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+            background: var(--card);
+        }
+
+        #results {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .emotion-bar {
+            margin-top: 1.5rem;
+        }
+
+        .emotion-item {
+            margin-bottom: 1.2rem;
+        }
+
+        .emotion-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .progress-container {
+            height: 10px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.6s ease;
+        }
+
+        .happy-fill {
+            background: linear-gradient(90deg, #4cc9f0, #4895ef);
+        }
+
+        .sad-fill {
+            background: linear-gradient(90deg, #7209b7, #4361ee);
+        }
+
+        .angry-fill {
+            background: linear-gradient(90deg, #f72585, #b5179e);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Стили для текстового анализа */
+        .transcript-container {
+            margin-top: 2rem;
+            background: var(--card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 16px var(--shadow);
+        }
+
+        .transcript-text {
+            line-height: 1.8;
+            font-size: 1.1rem;
+            min-height: 100px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+
+        .word {
+            transition: all 0.3s ease;
+            padding: 0.1rem 0.2rem;
+            border-radius: 4px;
+            position: relative;
+            display: inline-block;
+            margin-right: 0.3rem;
+        }
+
+            .word.happy {
+                background: linear-gradient(90deg, rgba(76, 201, 240, 0.2), rgba(72, 149, 239, 0.2));
+                color: #4cc9f0;
+            }
+
+            .word.sad {
+                background: linear-gradient(90deg, rgba(114, 9, 183, 0.2), rgba(90, 24, 154, 0.2));
+                color: #7209b7;
+            }
+
+            .word.angry {
+                background: linear-gradient(90deg, rgba(247, 37, 133, 0.2), rgba(181, 23, 158, 0.2));
+                color: #f72585;
+            }
+
+            .word.neutral {
+                opacity: 0.8;
+            }
+
+        .emotion-tag {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            margin-left: 0.3rem;
+            font-weight: 600;
+            position: absolute;
+            top: -1.2rem;
+            right: 0;
+            transform: scale(0.8);
+            opacity: 0.8;
+        }
+
+        .tag-happy {
+            background: rgba(76, 201, 240, 0.2);
+            color: #4cc9f0;
+        }
+
+        .tag-sad {
+            background: rgba(114, 9, 183, 0.2);
+            color: #7209b7;
+        }
+
+        .tag-angry {
+            background: rgba(247, 37, 133, 0.2);
+            color: #f72585;
+        }
+
+        /* Анимации */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease forwards;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Индикатор распознавания */
+        .recognition-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #4cc9f0;
+            margin-left: 5px;
+            vertical-align: middle;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse-opacity {
+            0% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.3;
+            }
+        }
+
+        .listening .recognition-indicator {
+            background-color: #f72585;
+            animation: pulse-opacity 1.5s infinite;
+        }
+
+        /* Индикатор загрузки */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+            vertical-align: middle;
         }
     </style>
 </head>
 <body>
-    <h1>Анализ эмоций в речи</h1>
-    
-    <div>
-        <button id="recordBtn" class="recording-btn">Начать запись</button>
-        <audio id="audioPlayer" controls style="display: none;"></audio>
-    </div>
-    
-    <div id="uploadSection">
-        <p>Или загрузите существующий файл:</p>
-        <input type="file" id="fileUpload" accept=".wav,.mp3">
-    </div>
-    
-    <div id="results" style="margin-top: 20px; display: none;">
-        <h2>Результаты анализа:</h2>
-        <div id="coloredText"></div>
+    <div class="container">
+        <header>
+            <h1>Анализатор эмоций в речи</h1>
+            <button class="theme-toggle" id="themeToggle">🌙</button>
+        </header>
+
+        <div class="card fade-in">
+            <div class="controls" style="text-align: center;">
+                <button id="recordBtn" class="btn btn-primary">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                    Начать запись
+                </button>
+
+                <audio id="audioPlayer" controls class="hidden"></audio>
+
+                <div class="file-upload">
+                    <p style="margin-bottom: 1rem; color: var(--text); opacity: 0.8;">Или загрузите аудиофайл</p>
+                    <label for="fileUpload" class="file-upload-label">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        Выбрать файл
+                    </label>
+                    <input type="file" id="fileUpload" accept=".wav,.mp3,.ogg" class="hidden">
+                    <p id="fileName" style="margin-top: 0.5rem; color: var(--text); opacity: 0.6;">Файл не выбран</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="transcriptContainer" class="card fade-in">
+            <h2 style="margin-top: 0; color: var(--primary); display: flex; align-items: center;">
+                Распознанный текст
+                <span id="recognitionIndicator" class="recognition-indicator hidden"></span>
+                <span id="loadingIndicator" class="loading hidden"></span>
+            </h2>
+            <div id="transcriptText" class="transcript-text">
+                <p id="interimText" style="color: #6c757d; font-style: italic;"></p>
+                <p id="finalText"></p>
+            </div>
+        </div>
+
+        <div id="results" class="card hidden fade-in">
+            <h2 style="margin-top: 0; color: var(--primary);">Результаты анализа эмоций</h2>
+
+            <div class="emotion-bar">
+                <div class="emotion-item">
+                    <div class="emotion-label">
+                        <span>😊 Позитивный</span>
+                        <span id="happyValue">0%</span>
+                    </div>
+                    <div class="progress-container">
+                        <div id="happyBar" class="progress-fill happy-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="emotion-item">
+                    <div class="emotion-label">
+                        <span>😠 Негативный</span>
+                        <span id="sadValue">0%</span>
+                    </div>
+                    <div class="progress-container">
+                        <div id="sadBar" class="progress-fill sad-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="emotion-item">
+                    <div class="emotion-label">
+                        <span>😐 Нейтральный</span>
+                        <span id="angryValue">0%</span>
+                    </div>
+                    <div class="progress-container">
+                        <div id="angryBar" class="progress-fill angry-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
+        // Элементы DOM
         const recordBtn = document.getElementById('recordBtn');
         const audioPlayer = document.getElementById('audioPlayer');
         const fileUpload = document.getElementById('fileUpload');
+        const fileName = document.getElementById('fileName');
+        const resultsSection = document.getElementById('results');
+        const themeToggle = document.getElementById('themeToggle');
+        const transcriptContainer = document.getElementById('transcriptContainer');
+        const interimText = document.getElementById('interimText');
+        const finalText = document.getElementById('finalText');
+        const recognitionIndicator = document.getElementById('recognitionIndicator');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        // Переменные для работы с аудио
         let mediaRecorder;
         let audioChunks = [];
-        
-        // Запись с микрофона
-        recordBtn.addEventListener('click', async () => {
-            if (recordBtn.classList.contains('recording')) {
-                stopRecording();
+        let recognition;
+        let audioContext;
+        let processor;
+        let currentTheme = localStorage.getItem('theme') || 'light';
+        let isRecording = false;
+        let finalTranscript = '';
+        let interimTranscript = '';
+
+        // Инициализация темы
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        themeToggle.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+
+        // Переключение темы
+        themeToggle.addEventListener('click', () => {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            localStorage.setItem('theme', currentTheme);
+            themeToggle.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+        });
+
+        // Инициализация распознавания речи
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                showAlert('Ваш браузер не поддерживает распознавание речи', 'error');
+                recordBtn.disabled = true;
                 return;
             }
-            
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                
-                mediaRecorder.ondataavailable = (e) => {
-                    if (e.data.size > 0) audioChunks.push(e.data);
-                };
-                
-                mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                    audioPlayer.src = URL.createObjectURL(audioBlob);
-                    audioPlayer.style.display = 'block';
-                    sendAudioForAnalysis(audioBlob);
-                };
-                
-                audioChunks = [];
-                mediaRecorder.start();
-                recordBtn.classList.add('recording');
-                recordBtn.textContent = 'Остановить запись';
-                
-            } catch (err) {
-                console.error('Ошибка доступа к микрофону:', err);
-                alert('Не удалось получить доступ к микрофону');
-            }
-        });
-        
-        
-        function stopRecording() {
-            mediaRecorder.stop();
-            mediaRecorder.stream.getTracks().forEach(track => track.stop());
-            recordBtn.classList.remove('recording');
-            recordBtn.textContent = 'Начать запись';
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'ru-RU';
+
+            recognition.onstart = () => {
+                recognitionIndicator.classList.remove('hidden');
+                transcriptContainer.classList.add('listening');
+            };
+
+            recognition.onend = () => {
+                recognitionIndicator.classList.add('hidden');
+                transcriptContainer.classList.remove('listening');
+
+                if (isRecording) {
+                    recognition.start(); // Перезапускаем распознавание, если запись продолжается
+                }
+            };
+
+            recognition.onresult = (event) => {
+                interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+
+                    if (event.results[i].isFinal) {
+                        finalTranscript += ' ' + transcript;
+                        //console.log('Мы в initSpeechRecognition' + analyzeEmotions(finalTranscript))
+                        analyzeEmotions(finalTranscript).then(coloredText => {
+                            finalText.innerHTML = coloredText;
+                        }).catch(error => {
+                            console.error("Ошибка:", error);
+                            finalText.innerHTML = finalTranscript; // Выводим исходный текст при ошибке
+                        });
+                        //analyzeEmotions(finalTranscript);
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                interimText.textContent = interimTranscript;
+
+                // Прокручиваем контейнер вниз
+                transcriptContainer.scrollTop = transcriptContainer.scrollHeight;
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Ошибка распознавания:', event.error);
+                showAlert(`Ошибка распознавания: ${event.error}`, 'error');
+            };
         }
-        
-        // Загрузка файла
-        fileUpload.addEventListener('change', (e) => {
-            if (e.target.files.length) {
-                sendAudioForAnalysis(e.target.files[0]);
-            }
-        });
-        
-        // Отправка на сервер
-        async function sendAudioForAnalysis(audioBlob) {
-            const formData = new FormData();
-            formData.append('audio', audioBlob, 'recording.wav');
-            
+
+        // Инициализация аудио контекста
+        async function initAudioContext() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            processor = audioContext.createScriptProcessor(4096, 1, 1);
+            processor.onaudioprocess = processAudio;
+        }
+
+        // Обработка аудио данных (для записи с микрофона)
+        function processAudio(event) {
+            // Можно добавить обработку аудио данных
+        }
+
+        // Отправка аудио на сервер Flask для распознавания
+        async function sendAudioToServer(audioBlob) {
+            loadingIndicator.classList.remove('hidden');
+            finalText.innerHTML = '';
+            interimText.textContent = 'Отправка аудио на сервер...';
+
             try {
-                const response = await fetch('/process_audio', {
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'recording.wav');
+
+                const response = await fetch('http://localhost:5000/recognize', {
                     method: 'POST',
                     body: formData
                 });
-                
-                if (!response.ok) throw new Error('Ошибка анализа');
-                
+
+                if (!response.ok) {
+                    throw new Error(`Ошибка сервера: ${response.status}`);
+                }
+
                 const data = await response.json();
-                showResults(data);
-                
+
+                if (data.text) {
+                    finalTranscript = data.text;
+                    console.log('МЫ В senfaudiotoserve')
+                    finalText.innerHTML = analyzeEmotions(finalTranscript);
+                    //analyzeEmotions(finalTranscript);
+                }
+
             } catch (error) {
-                console.error('Ошибка:', error);
-                alert('Ошибка при анализе аудио');
+                console.error('Ошибка при отправке аудио:', error);
+                showAlert('Ошибка при распознавании аудио', 'error');
+            } finally {
+                loadingIndicator.classList.add('hidden');
             }
         }
-        
-        // Показ результатов
-        function showResults(data) {
-            document.getElementById('coloredText').innerHTML = data.colored_text;
-            document.getElementById('results').style.display = 'block';
+
+        // Анализ эмоций в тексте
+        async function analyzeEmotions(text) {
+            // Показываем индикатор загрузки
+            loadingIndicator.classList.remove('hidden');
+            
+            try {
+                // Отправляем текст на сервер для анализа
+                const response = await fetch('http://localhost:5000/analyze_sentiment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Ошибка сервера: ${response.status}`);
+                }
+                
+                const data = await response.json();
+
+                //console.log(data)
+
+
+                const sentimentMap = {};
+                data.forEach(item => {
+                    sentimentMap[item.word.toLowerCase()] = item.sentiment;
+                });
+
+                //console.log(sentimentMap)
+
+                // Разбиваем текст на слова (учитывая пробелы и знаки препинания)
+                const wordElements = text.split(/(\s+)/);
+
+                let positive_count = 0;
+                let negative_count = 0;
+                let neutral_count = 0;
+
+                // Обрабатываем каждое слово
+                const coloredWords = wordElements.map(word => {
+                    const cleanWord = word.toLowerCase().replace(/[.,!?]/g, '').trim();
+
+                    //console.log(cleanWord)
+                    
+                    // Если слово есть в ответе API
+                    if (cleanWord && sentimentMap[cleanWord]) {
+                        const sentiment = sentimentMap[cleanWord];
+                        
+                        switch(sentiment) {
+                            case 'positive':
+                                positive_count += 1;
+                                return `<span class="word happy">${word}<span class="emotion-tag tag-happy">позитивный</span></span>`;
+                            case 'negative':
+                                negative_count += 1;
+                                return `<span class="word angry">${word}<span class="emotion-tag tag-angry">негативный</span></span>`;
+                            case 'neutral':
+                            default:
+                                neutral_count += 1;
+                                return `<span class="word neutral">${word}</span>`;
+                        }
+                    }
+                    
+                    // Если ничего не подошло
+                    return `<span class="word neutral">${word}</span>`;
+                });
+
+                //console.log(coloredWords)
+
+                // Рассчитываем проценты эмоций
+                const totalEmotional = positive_count + negative_count + neutral_count;
+                const positivePercent = totalEmotional > 0 ? Math.round((positive_count / totalEmotional) * 100) : 0;
+                const negativePercent = totalEmotional > 0 ? Math.round((negative_count / totalEmotional) * 100) : 0;
+                const neutralPercent = totalEmotional > 0 ? Math.round((neutral_count / totalEmotional) * 100) : 0;
+
+                // Обновляем интерфейс
+                updateEmotionBars({
+                    happy: positivePercent,
+                    sad: negativePercent,
+                    angry: neutralPercent
+                });
+
+                return coloredWords.join('');
+                
+                
+            } catch (error) {
+                console.error('Ошибка анализа эмоций:', error);
+                showAlert('Не удалось проанализировать эмоции', 'error');}
+            // } finally {
+            //     loadingIndicator.classList.add('hidden');
+            // }
         }
+
+        // Цветовая маркировка текста по эмоциям
+        function colorizeText(text) {
+            // Словари эмоциональных слов (можно расширить)
+            const happyWords = ['радость', 'счастье', 'ура', 'хорошо', 'прекрасно', 'люблю', 'нравится', 'отлично', 'восторг', 'удовольствие', 'весел', 'рад', 'смех'];
+            const sadWords = ['грусть', 'печаль', 'плохо', 'тоска', 'одиночество', 'слезы', 'обида', 'разочарование', 'горе', 'жаль', 'грустн', 'плач', 'несчаст'];
+            const angryWords = ['злость', 'ненавижу', 'бесит', 'раздражает', 'отвратительно', 'гнев', 'ужасно', 'кошмар', 'ярость', 'возмущение', 'злюсь', 'сердит', 'бешен'];
+
+            // Разбиваем текст на слова
+            const words = text.split(/(\s+)/);
+
+            // Анализируем каждое слово
+            const coloredWords = words.map(word => {
+                const cleanWord = word.toLowerCase().replace(/[.,!?]/g, '');
+
+                if (happyWords.some(happyWord => cleanWord.includes(happyWord))) {
+                    return `<span class="word happy">${word}<span class="emotion-tag tag-happy">радость</span></span>`;
+                }
+                else if (sadWords.some(sadWord => cleanWord.includes(sadWord))) {
+                    return `<span class="word sad">${word}<span class="emotion-tag tag-sad">грусть</span></span>`;
+                }
+                else if (angryWords.some(angryWord => cleanWord.includes(angryWord))) {
+                    return `<span class="word angry">${word}<span class="emotion-tag tag-angry">злость</span></span>`;
+                }
+                else {
+                    return `<span class="word neutral">${word}</span>`;
+                }
+            });
+
+            return coloredWords.join('');
+        }
+
+        // Обновление прогресс-баров эмоций
+        function updateEmotionBars(emotions) {
+            document.getElementById('happyBar').style.width = emotions.happy + '%';
+            document.getElementById('happyValue').textContent = emotions.happy + '%';
+
+            document.getElementById('sadBar').style.width = emotions.sad + '%';
+            document.getElementById('sadValue').textContent = emotions.sad + '%';
+
+            document.getElementById('angryBar').style.width = emotions.angry + '%';
+            document.getElementById('angryValue').textContent = emotions.angry + '%';
+
+            resultsSection.classList.remove('hidden');
+        }
+
+        // Начало записи с микрофона
+        async function startRecording() {
+            try {
+                await initAudioContext();
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+
+                // Подключаем обработчик аудио
+                const source = audioContext.createMediaStreamSource(stream);
+                source.connect(processor);
+                processor.connect(audioContext.destination);
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    audioPlayer.src = URL.createObjectURL(audioBlob);
+                    audioPlayer.classList.remove('hidden');
+
+                    // Отправляем аудио на сервер Flask
+                    await sendAudioToServer(audioBlob);
+                };
+
+                audioChunks = [];
+                isRecording = true;
+                finalTranscript = '';
+                finalText.innerHTML = '';
+                interimText.textContent = '';
+
+                mediaRecorder.start();
+                recognition.start();
+
+                // Обновляем UI
+                recordBtn.classList.add('recording', 'btn-danger');
+                recordBtn.innerHTML = `
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                        </svg>
+                        Остановить запись
+                    `;
+
+            } catch (err) {
+                console.error('Ошибка доступа к микрофону:', err);
+                showAlert('Не удалось получить доступ к микрофону', 'error');
+                stopRecording();
+            }
+        }
+
+        // Остановка записи
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+
+            if (recognition) {
+                recognition.stop();
+            }
+
+            isRecording = false;
+
+            // Обновляем UI
+            recordBtn.classList.remove('recording', 'btn-danger');
+            recordBtn.classList.add('btn-primary');
+            recordBtn.innerHTML = `
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                    Начать запись
+                `;
+        }
+
+        // Обработчик загрузки файла
+        fileUpload.addEventListener('change', async (e) => {
+            if (e.target.files.length) {
+                const file = e.target.files[0];
+                fileName.textContent = file.name;
+
+                // Создаем URL для воспроизведения файла
+                const audioURL = URL.createObjectURL(file);
+                audioPlayer.src = audioURL;
+                audioPlayer.classList.remove('hidden');
+
+                // Отправляем файл на сервер Flask
+                loadingIndicator.classList.remove('hidden');
+                finalText.innerHTML = '';
+                interimText.textContent = 'Отправка файла на сервер...';
+
+                try {
+                    const formData = new FormData();
+                    formData.append('audio', file);
+
+                    const response = await fetch('http://localhost:5000/recognize', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Ошибка сервера: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (data.text) {
+                        finalTranscript = data.text;
+                        finalText.innerHTML = colorizeText(finalTranscript);
+                        analyzeEmotions(finalTranscript);
+                    }
+
+                } catch (error) {
+                    console.error('Ошибка при отправке файла:', error);
+                    showAlert('Ошибка при распознавании аудиофайла', 'error');
+                } finally {
+                    loadingIndicator.classList.add('hidden');
+                }
+            }
+        });
+
+        // Обработчик кнопки записи
+        recordBtn.addEventListener('click', async () => {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                await startRecording();
+            }
+        });
+
+        // Показ уведомлений
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.style.position = 'fixed';
+            alert.style.bottom = '20px';
+            alert.style.right = '20px';
+            alert.style.padding = '12px 24px';
+            alert.style.borderRadius = '8px';
+            alert.style.background = type === 'error' ? 'var(--accent)' : 'var(--primary)';
+            alert.style.color = 'white';
+            alert.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            alert.style.zIndex = '1000';
+            alert.style.animation = 'fadeIn 0.3s ease forwards';
+            alert.textContent = message;
+
+            document.body.appendChild(alert);
+
+            setTimeout(() => {
+                alert.style.animation = 'fadeOut 0.3s ease forwards';
+                setTimeout(() => alert.remove(), 300);
+            }, 3000);
+        }
+
+        // Инициализация при загрузке страницы
+        window.addEventListener('DOMContentLoaded', () => {
+            initSpeechRecognition();
+        });
+
+        // CSS для анимаций
+        const style = document.createElement('style');
+        style.textContent = `
+                @keyframes fadeOut {
+                    from { opacity: 1; transform: translateY(0); }
+                    to { opacity: 0; transform: translateY(20px); }
+                }
+            `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
